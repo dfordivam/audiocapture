@@ -22,8 +22,6 @@ import GHCJS.DOM.MediaDevices
 import GHCJS.DOM.WebSocket
 import GHCJS.DOM.Navigator
 import GHCJS.DOM
-import Data.Aeson
-import Data.Aeson.Types
 import Language.Javascript.JSaddle.Value
 import Language.Javascript.JSaddle.Types
 import JavaScript.Object
