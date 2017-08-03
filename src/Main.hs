@@ -2,11 +2,8 @@
 module Main where
 
 import Protolude hiding (link, on)
-import Reflex.Dom
+import Reflex.Dom hiding (WebSocket)
 
-import Reflex.Dom.WebSocket.Monad
-import Reflex.Dom.WebSocket.Message
-import Reflex.Dom.SemanticUI
 import Control.Monad.Primitive
 import qualified Data.Map as Map
 import Control.Lens
@@ -22,6 +19,7 @@ import GHCJS.DOM.AudioContext
 import GHCJS.DOM.AudioContext
 import GHCJS.DOM.Window
 import GHCJS.DOM.MediaDevices
+import GHCJS.DOM.WebSocket
 import GHCJS.DOM.Navigator
 import GHCJS.DOM
 import Data.Aeson
@@ -35,9 +33,15 @@ main = mainWidget $ do
 
 testWidget = do
   text "hello"
-  liftIO audioSetup
+  liftIO $ do
+    wsConn <- newWebSocket ("ws://localhost:3000/" :: Protolude.Text) ([] :: [Protolude.Text])
+    mediaStr <- audioSetup
+    processor <- getScriptProcessorNode mediaStr
+    _ <- liftIO $ on processor audioProcess (onAudioProcess wsConn)
+    putStrLn ("MediaStream Setup Done" :: Protolude.Text)
+    return ()
 
-audioSetup :: MonadDOM m => m ()
+audioSetup :: MonadDOM m => m (MediaStream)
 audioSetup = do
   win <- currentWindowUnchecked
   nav <- getNavigator win
@@ -51,11 +55,10 @@ audioSetup = do
     toJSVal (ValObject o)
 
   let constraints = MediaStreamConstraints v
-  media <- GHCJS.DOM.MediaDevices.getUserMedia devices (Just constraints)
-  myGetUserMedia media
+  GHCJS.DOM.MediaDevices.getUserMedia devices (Just constraints)
 
-myGetUserMedia :: MonadDOM m => MediaStream -> m ()
-myGetUserMedia mediaStream = do
+getScriptProcessorNode :: MonadDOM m => MediaStream -> m (ScriptProcessorNode)
+getScriptProcessorNode mediaStream = do
   -- newAudioContext :: MonadDOM m => m AudioContext
   context <- newAudioContext
 
@@ -65,21 +68,18 @@ myGetUserMedia mediaStream = do
   processor <- createScriptProcessor context bufferSize (Just 1) (Just 1)
 
   connect strSrc processor Nothing Nothing
+  return processor
 
-  _ <- liftIO $ on processor audioProcess onAudioProcess
-  putStrLn ("Setup Done" :: Protolude.Text)
-  return ()
-
-onAudioProcess :: EventM ScriptProcessorNode AudioProcessingEvent ()
-onAudioProcess = do
+onAudioProcess :: WebSocket -> EventM ScriptProcessorNode AudioProcessingEvent ()
+onAudioProcess wsConn = do
   putStrLn ("Start Audio Process" :: Protolude.Text)
   aEv <- ask
-  callBackListener aEv
+  callBackListener aEv wsConn
 
-callBackListener :: MonadDOM m => AudioProcessingEvent -> m ()
-callBackListener e = do
+callBackListener :: MonadDOM m => AudioProcessingEvent -> WebSocket -> m ()
+callBackListener e wsConn = do
   -- getInputBuffer :: MonadDOM m => AudioProcessingEvent -> m AudioBuffer
   buf <- getInputBuffer e
   -- getChannelData :: MonadDOM m => AudioBuffer -> Word -> m Float32Array
   d <- getChannelData buf 0
-  putStrLn ("Got Channel Data" :: Protolude.Text)
+  send wsConn (ArrayBuffer $ unFloat32Array d)

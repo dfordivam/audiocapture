@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import Protolude
@@ -7,10 +8,12 @@ import Network.Wai.Handler.WebSockets
 import Network.WebSockets
 import Network.HTTP.Types.Status
 import qualified Data.Map as Map
-
+import Data.ByteString
 
 main :: IO ()
-main =
+main = do
+  runEnv 3000 app
+app =
   websocketsOr defaultConnectionOptions wsApp backupApp
   where
     -- wsApp :: ServerApp
@@ -20,16 +23,10 @@ main =
 
     loop conn = do
       d <- receiveData conn
-      print $ length d
-      -- let
-      --     rwst = handleRequest handler d
-
-      -- hState <- readIORef handlerStateRef
-      -- (resp, newState, _) <- runRWST rwst dbConn hState
-      -- writeIORef handlerStateRef newState
-
-      -- print resp
-      -- sendBinaryData conn resp
+      let
+        h :: ByteString -> IO ()
+        h d = print $ Data.ByteString.length d
+      h d
       loop conn
 
     backupApp :: Application

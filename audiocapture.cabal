@@ -21,7 +21,6 @@ executable audiocapture
   -- other-extensions:
   build-depends:       base >=4.9 && <4.10
                      , bytestring
-                     , aeson
                      , containers
                      , data-default
                      , file-embed
@@ -29,14 +28,9 @@ executable audiocapture
                      , lens
                      , primitive
                      , protolude
-                     , reflex-websocket-interface-shared
-                     , reflex-websocket-interface
-                     , reflex-dom
                      , reflex
+                     , reflex-dom
                      , reflex-dom-core
-                     , reflex-websocket-interface-shared
-                     , reflex-websocket-interface
-                     , reflex-dom-semui
                      , text
                      , time
                      , uri-bytestring
