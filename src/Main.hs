@@ -66,6 +66,8 @@ getScriptProcessorNode mediaStream = do
   processor <- createScriptProcessor context bufferSize (Just 1) (Just 1)
 
   connect strSrc processor Nothing Nothing
+  dest <- getDestination context
+  connect processor dest Nothing Nothing
   return processor
 
 onAudioProcess :: WebSocket -> EventM ScriptProcessorNode AudioProcessingEvent ()
